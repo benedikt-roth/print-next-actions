@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>{{title}}</title>
+  <style type="text/css">
+  body {
+    font-family: sans-serif;
+    font-size: 14pt;
+    margin: 0 1em;
+    padding: 1em;
+    max-width: 14.85cm;
+    overflow: hidden;
+  }
+
+  dl dd {
+    color: #CCC;
+    margin: 0 0 10px;
+    font-size: 0.8em;
+    max-width: 14.85cm;
+  }
+  </style>
+</head>
+<body>
+  <h1>{{context}}</h1>
+  <dl>
+    {{#tasks}}
+      <dt>{{task.name}} {{#task.estimatedMinutes}}({{task.estimatedMinutes}}){{/task.estimatedMinutes}}</dt>
+      <dd>{{#task.note}}{{task.note}}{{/task.note}}</dd>
+    {{/tasks}}
+  </dl>
+</body>
+</html>
