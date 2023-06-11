@@ -11,7 +11,7 @@ const {
 } = require('./helper');
 
 const INPUT_FILE = '/Users/roth/Desktop/next_actions.json';
-const AUTOMATION_SCRIPT = '/Users/roth/Desktop/extract_next_actions.scpt';
+const AUTOMATION_SCRIPT = './resources/extract_next_actions.scpt';
 
 async function run() {
     console.log('Extract next actions from OmniFocus');
