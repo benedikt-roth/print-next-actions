@@ -30,7 +30,7 @@ async function run() {
     await fs.mkdir(outDir + `/pdf`, {recursive: true});
     await fs.mkdir(outDir + `/html`, {recursive: true});
 
-    for (let i=0; i < 3; i++) {
+    for (let i=0; i < contexts.length-1; i++) {
         const rendered = mustache.render(template, {
             context: contexts[i],
             tasks: tasks.filter(item => item.tag.name === contexts[i]),
