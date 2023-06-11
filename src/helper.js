@@ -29,7 +29,7 @@ async function renderPDF(htmlFilePath, pdfFilePath) {
         bottom: 30,
         top: 30,
         right: 30,
-        top: 30,
+        left: 50,
       },
     };
   

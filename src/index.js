@@ -62,7 +62,11 @@ async function run() {
             .filter(file => path.extname(file) === '.pdf')
             .map(file => `${outDir}/pdf/${file}`);
 
+        if (await fs.access(`${outDir}/pdf/_combined.pdf`, fs.constants.F_OK)) {
+            await fs.rm(`${outDir}/pdf/_combined.pdf`);
+        }
         await mergePDFs(pdfs, outDir + `/pdf/_combined.pdf`)
+        exec(`open ${outDir}/pdf/_combined.pdf`);
     }
 }
 
