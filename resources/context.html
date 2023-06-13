@@ -30,10 +30,19 @@
   dl dd.due {
     color: red;
   }
+
+  div.placeholder {
+    height: 8em;
+    width: 13cm;
+    border: 1pt solid #AAA;
+  }
   </style>
 </head>
 <body>
   <h1>{{contextName}}</h1>
+  <div class="placeholder">
+    <!-- empty -->
+  </div>
   <dl>
     {{#tasks}}
       <dt>{{task.name}} {{#task.estimatedMinutes}}({{task.estimatedMinutes}}min){{/task.estimatedMinutes}}</dt>
