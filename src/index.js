@@ -16,13 +16,25 @@ const AUTOMATION_SCRIPT = './resources/extract_next_actions.scpt';
 
 const GENERATE_PDF = !process.argv.includes('--no-pdf');
 
+function mapTaskDataForRender(item) {
+    return {
+        ...item,
+        task: {
+            ...item.task,
+            effectiveDueDate: !!item.task.effectiveDueDate
+                ? dayjs(item.task.effectiveDueDate).format('DD. MM YYYY')
+                : null,
+        },
+    };
+}
+
 async function run() {
     console.log('Extract next actions from OmniFocus');
     await exec(`osascript -l JavaScript ${AUTOMATION_SCRIPT}`);
     console.log('Done extracting.');
     
     
-    console.log('Generate PDF files.');
+    console.log('Generate pages...');
     const fileContent = await fs.readFile(INPUT_FILE);
     const tasks = JSON.parse(fileContent);
 
@@ -43,15 +55,7 @@ async function run() {
                 .filter(item => item.tag.name === contexts[i])
                 .sort((a, b) => a.metadata.section > b.metadata.section)
                 .sort((a, b) => new Date(b.task.effectiveDueDate) - new Date(a.task.effectiveDueDate))
-                .map(item => ({
-                    ...item,
-                    task: {
-                        ...item.task,
-                        effectiveDueDate: !!item.task.effectiveDueDate
-                            ? dayjs(item.task.effectiveDueDate).format('DD. MM YYYY')
-                            : null,
-                    },
-                })),
+                .map(mapTaskDataForRender),
         });
         await fs.writeFile(`${outDir}/html/${contexts[i]}.html`, rendered);
 
@@ -60,6 +64,26 @@ async function run() {
         }
     }
 
+    /**
+     * Generate Due Soon page
+     */
+    const rendered = mustache.render(template, {
+        contextName: 'Due Soon',
+        tasks: tasks
+            .filter(task => !!task.task.effectiveDueDate)
+            .sort((a, b) => new Date(a.task.effectiveDueDate) - new Date(b.task.effectiveDueDate))
+            .map(mapTaskDataForRender),
+    });
+    await fs.writeFile(`${outDir}/html/00_due_soon.html`, rendered);
+
+    if (GENERATE_PDF) {
+        await renderPDF(`${outDir}/html/00_due_soon.html`, `${outDir}/pdf/00_due_soon.pdf`);
+    }
+
+
+    /**
+     * Combine PDFs into one file named '_combined.pdf'
+     */
     if (GENERATE_PDF) {
         const pdfs = (await fs.readdir(outDir + '/pdf'))
             .filter(file => path.extname(file) === '.pdf')
