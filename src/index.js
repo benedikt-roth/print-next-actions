@@ -29,6 +29,15 @@ function mapTaskDataForRender(item) {
 }
 
 async function run() {
+    /**
+     * Cleanup existing files
+     */
+    try {
+        await fs.rm(`${outDir}/pdf/_combined.pdf`);
+    } catch (err) {
+        // empty
+    }
+
     console.log('Extract next actions from OmniFocus');
     await exec(`osascript -l JavaScript ${AUTOMATION_SCRIPT}`);
     console.log('Done extracting.');
@@ -88,12 +97,6 @@ async function run() {
         const pdfs = (await fs.readdir(outDir + '/pdf'))
             .filter(file => path.extname(file) === '.pdf')
             .map(file => `${outDir}/pdf/${file}`);
-
-        try {
-            await fs.rm(`${outDir}/pdf/_combined.pdf`);
-        } catch (err) {
-            // empty
-        }
 
         console.log('merge pdfs');
         await mergePDFs(pdfs, outDir + `/pdf/_combined.pdf`)
