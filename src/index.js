@@ -33,9 +33,12 @@ async function run() {
     await fs.mkdir(outDir + `/pdf`, {recursive: true});
     await fs.mkdir(outDir + `/html`, {recursive: true});
 
+    /**
+     * Generate context pages
+     */
     for (let i=0; i < contexts.length-1; i++) {
         const rendered = mustache.render(template, {
-            context: contexts[i],
+            contextName: contexts[i],
             tasks: tasks
                 .filter(item => item.tag.name === contexts[i])
                 .sort((a, b) => a.metadata.section > b.metadata.section)
