@@ -50,7 +50,7 @@ async function mergePDFs(inputFilePaths, outputFilePath) {
     }
   
     const pdfBytes = await mergedPdf.save();
-    await fs.writeFile(outputFilePath, pdfBytes);
+    return fs.writeFile(outputFilePath, pdfBytes);
 }
 
 module.exports = {
