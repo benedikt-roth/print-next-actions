@@ -84,6 +84,7 @@ async function run() {
                 .filter(item => item.tag.name === contexts[i])
                 .filter(item => item.tag.name !== WAITING_FOR_TAG_NAME) // Exclude Waiting For items, since they are no tasks
                 .sort((a, b) => a.metadata.section > b.metadata.section)
+                .sort((a, b) => b.task.flagged - a.task.flagged)
                 .sort((a, b) => new Date(b.task.effectiveDueDate) - new Date(a.task.effectiveDueDate))
                 .map(mapTaskDataForRender),
         });
