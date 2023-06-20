@@ -15,6 +15,7 @@ const INPUT_FILE = '/Users/roth/Desktop/next_actions.json';
 const AUTOMATION_SCRIPT = './resources/extract_next_actions.scpt';
 
 const GENERATE_PDF = !process.argv.includes('--no-pdf');
+const EXTRACT_ACTIONS = !process.argv.includes('--no-extract');
 
 function bySection( a, b ) {
     if ( a.metadata.section < b.metadata.section ){
@@ -51,9 +52,13 @@ async function run() {
         // empty
     }
 
-    console.log('Extract next actions from OmniFocus');
-    await exec(`osascript -l JavaScript ${AUTOMATION_SCRIPT}`);
-    console.log('Done extracting.');
+    if (EXTRACT_ACTIONS) {
+        console.log('Extract next actions from OmniFocus');
+        await exec(`osascript -l JavaScript ${AUTOMATION_SCRIPT}`);
+        console.log('Done extracting.');
+    } else {
+        console.log('Skipping extraction of next actions.');
+    }
     
     
     console.log('Generate pages...');
@@ -64,7 +69,9 @@ async function run() {
     const template = (await fs.readFile('./resources/context.html')).toString();
     const outDir = `/Users/roth/Desktop`;
 
-    await fs.mkdir(outDir + `/pdf`, {recursive: true});
+    if (GENERATE_PDF) {
+        await fs.mkdir(outDir + `/pdf`, {recursive: true});
+    }
     await fs.mkdir(outDir + `/html`, {recursive: true});
 
     /**
@@ -86,6 +93,9 @@ async function run() {
             await renderPDF(`${outDir}/html/${contexts[i]}.html`, `${outDir}/pdf/${contexts[i]}.pdf`);
         }
     }
+
+    console.log('Done generating section pages.');
+
 
     /**
      * Generate Due Soon page
