@@ -39,6 +39,10 @@
     width: 13cm;
     border: 1pt solid #AAA;
   }
+
+  span.secondary {
+    color: #CCC;
+  }
   </style>
 </head>
 <body>
@@ -48,7 +52,7 @@
   </div>
   <dl>
     {{#tasks}}
-      <dt>{{task.name}} {{#task.estimatedMinutes}}({{task.estimatedMinutes}}min){{/task.estimatedMinutes}}</dt>
+      <dt>{{#task.flagged}}🚩{{/task.flagged}} {{task.name}} {{#task.estimatedMinutes}}<span class="secondary">({{task.estimatedMinutes}}min)</span>{{/task.estimatedMinutes}}</dt>
       {{#task.effectiveDueDate}}<dd class="due">🎯 Due {{task.effectiveDueDate}}</dd>{{/task.effectiveDueDate}}
       {{#task.note}}<dd class="note">{{task.note}}</dd>{{/task.note}}
     {{/tasks}}
