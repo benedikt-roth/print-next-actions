@@ -9,6 +9,7 @@ const {
     getTagNames,
     renderPDF,
     mergePDFs,
+    destruct,
 } = require('./helper');
 
 const INPUT_FILE = '/Users/roth/Desktop/next_actions.json';
@@ -57,15 +58,16 @@ async function run() {
         await exec(`osascript -l JavaScript ${AUTOMATION_SCRIPT}`);
         console.log('Done extracting.');
     } else {
-        console.log('Skipping extraction of next actions.');
+        console.log('Skipping extraction of next actions.\n');
     }
     
     
-    console.log('Generate pages...');
+    console.log('Generate HTML pages...');
     const fileContent = await fs.readFile(INPUT_FILE);
     const {tasks, agendaItems} = JSON.parse(fileContent);
 
-    const contexts = getTagNames(tasks);
+    const contexts = getTagNames(tasks)
+        .filter(tagName => tagName !== WAITING_FOR_TAG_NAME);
     const template = (await fs.readFile('./resources/context.html')).toString();
     const outDir = `/Users/roth/Desktop`;
 
@@ -77,6 +79,7 @@ async function run() {
     /**
      * Generate context pages
      */
+    console.log('Generate Context pages...');
     for (let i=0; i < contexts.length; i++) {
         const rendered = mustache.render(template, {
             contextName: contexts[i],
@@ -95,7 +98,7 @@ async function run() {
         }
     }
 
-    console.log('Done generating agenda pages.');
+    console.log('Done generating context pages.\n');
     
     /**
      * Generate Agenda pages
@@ -105,7 +108,7 @@ async function run() {
     const agendas = getTagNames(agendaItems);
     for (let i=0; i < agendas.length; i++) {
         const rendered = mustache.render(template, {
-            contextName: agendas[i],
+            contextName: `Agenda: ${agendas[i]}`,
             tasks: agendaItems
                 .filter(item => item.tag.name === agendas[i])
                 .sort((a, b) => b.task.flagged - a.task.flagged)
@@ -119,7 +122,7 @@ async function run() {
         }
     }
 
-    console.log('Done generating section pages.');
+    console.log('Done generating agenda pages.\n');
 
 
     /**
@@ -166,9 +169,11 @@ async function run() {
             .filter(file => path.extname(file) === '.pdf')
             .map(file => `${outDir}/pdf/${file}`);
 
-        console.log('merge pdfs');
+        console.log('Merging PDFs...');
         await mergePDFs(pdfs, outDir + `/pdf/_combined.pdf`)
         exec(`open ${outDir}/pdf/_combined.pdf`);
+
+        await destruct();
     }
 }
 

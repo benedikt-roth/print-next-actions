@@ -2,6 +2,8 @@ const puppeteer = require('puppeteer');
 const { PDFDocument, StandardFonts } = require('pdf-lib');
 const fs = require('fs').promises;
 
+let browser;
+
 function getTagNames(tasks) {
     const flattenedList = [];
 
@@ -18,25 +20,26 @@ function getTagNames(tasks) {
 }
 
 async function renderPDF(htmlFilePath, pdfFilePath) {
-    const browser = await puppeteer.launch({headless: 'new'});
-    const page = await browser.newPage();
-    const options = {
-      path: pdfFilePath,
-      format: 'A5',
-      printBackground: true,
-      scale: 1,
-      margin: {
-        bottom: 30,
-        top: 30,
-        right: 30,
-        left: 50,
-      },
-    };
-  
-    await page.goto(`file://${htmlFilePath}`, { waitUntil: 'networkidle0' });
-    await page.pdf(options);
-  
-    await browser.close();
+  if (!browser) {
+    browser = await puppeteer.launch({headless: 'new'});
+  }
+
+  const page = await browser.newPage();
+  const options = {
+    path: pdfFilePath,
+    format: 'A5',
+    printBackground: true,
+    scale: 1,
+    margin: {
+      bottom: 30,
+      top: 30,
+      right: 30,
+      left: 50,
+    },
+  };
+
+  await page.goto(`file://${htmlFilePath}`, { waitUntil: 'networkidle0' });
+  await page.pdf(options);
 }
 
 async function mergePDFs(inputFilePaths, outputFilePath) {
@@ -53,8 +56,13 @@ async function mergePDFs(inputFilePaths, outputFilePath) {
     return fs.writeFile(outputFilePath, pdfBytes);
 }
 
+async function destruct() {
+  await browser.close();
+}
+
 module.exports = {
     getTagNames,
     renderPDF,
-    mergePDFs
+    mergePDFs,
+    destruct,
 }
