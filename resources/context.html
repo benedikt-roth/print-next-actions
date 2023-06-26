@@ -44,6 +44,10 @@
     color: #CCC;
     font-size: .8em;
   }
+
+  div.task {
+    page-break-inside: avoid;
+  }
   </style>
 </head>
 <body>
@@ -53,9 +57,11 @@
   </div>
   <dl>
     {{#tasks}}
-      <dt>{{#task.flagged}}🖤{{/task.flagged}} {{task.name}} {{#task.estimatedMinutes}}<span class="secondary">({{task.estimatedMinutes}}min)</span>{{/task.estimatedMinutes}}</dt>
-      {{#task.effectiveDueDate}}<dd class="due">🎯 Due {{task.effectiveDueDate}}</dd>{{/task.effectiveDueDate}}
-      {{#task.note}}<dd class="note">{{task.note}}</dd>{{/task.note}}
+      <div class="task">
+        <dt>{{#task.flagged}}🖤{{/task.flagged}} {{task.name}} {{#task.estimatedMinutes}}<span class="secondary">({{task.estimatedMinutes}}min)</span>{{/task.estimatedMinutes}}</dt>
+        {{#task.effectiveDueDate}}<dd class="due">🎯 Due {{task.effectiveDueDate}}</dd>{{/task.effectiveDueDate}}
+        {{#task.note}}<dd class="note">{{task.note}}</dd>{{/task.note}}
+      </div>
     {{/tasks}}
   </dl>
 </body>
