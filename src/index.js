@@ -88,10 +88,10 @@ async function run() {
                 .sort((a, b) => new Date(b.task.effectiveDueDate) - new Date(a.task.effectiveDueDate))
                 .map(mapTaskDataForRender),
         });
-        await fs.writeFile(`${outDir}/html/${contexts[i]}.html`, rendered);
+        await fs.writeFile(`${outDir}/html/02_${contexts[i]}.html`, rendered);
 
         if (GENERATE_PDF) {
-            await renderPDF(`${outDir}/html/${contexts[i]}.html`, `${outDir}/pdf/${contexts[i]}.pdf`);
+            await renderPDF(`${outDir}/html/02_${contexts[i]}.html`, `${outDir}/pdf/02_${contexts[i]}.pdf`);
         }
     }
 
@@ -112,10 +112,10 @@ async function run() {
                 .sort((a, b) => new Date(b.task.effectiveDueDate) - new Date(a.task.effectiveDueDate))
                 .map(mapTaskDataForRender),
         });
-        await fs.writeFile(`${outDir}/html/02_${agendas[i]}.html`, rendered);
+        await fs.writeFile(`${outDir}/html/03_${agendas[i]}.html`, rendered);
 
         if (GENERATE_PDF) {
-            await renderPDF(`${outDir}/html/02_${agendas[i]}.html`, `${outDir}/pdf/02_${agendas[i]}.pdf`);
+            await renderPDF(`${outDir}/html/03_${agendas[i]}.html`, `${outDir}/pdf/03_${agendas[i]}.pdf`);
         }
     }
 
