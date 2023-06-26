@@ -170,8 +170,8 @@ async function run() {
             .map(file => `${outDir}/pdf/${file}`);
 
         console.log('Merging PDFs...');
-        await mergePDFs(pdfs, outDir + `/pdf/_combined.pdf`)
-        exec(`open ${outDir}/pdf/_combined.pdf`);
+        await mergePDFs(pdfs, outDir + `/_combined.pdf`)
+        exec(`open ${outDir}/_combined.pdf`);
 
         await destruct();
     }
