@@ -63,7 +63,7 @@ async function run() {
     
     console.log('Generate pages...');
     const fileContent = await fs.readFile(INPUT_FILE);
-    const tasks = JSON.parse(fileContent);
+    const {tasks, agendaItems} = JSON.parse(fileContent);
 
     const contexts = getTagNames(tasks);
     const template = (await fs.readFile('./resources/context.html')).toString();
@@ -92,6 +92,30 @@ async function run() {
 
         if (GENERATE_PDF) {
             await renderPDF(`${outDir}/html/${contexts[i]}.html`, `${outDir}/pdf/${contexts[i]}.pdf`);
+        }
+    }
+
+    console.log('Done generating agenda pages.');
+    
+    /**
+     * Generate Agenda pages
+    */
+    console.log('Generate Agenda pages');
+
+    const agendas = getTagNames(agendaItems);
+    for (let i=0; i < agendas.length; i++) {
+        const rendered = mustache.render(template, {
+            contextName: agendas[i],
+            tasks: agendaItems
+                .filter(item => item.tag.name === agendas[i])
+                .sort((a, b) => b.task.flagged - a.task.flagged)
+                .sort((a, b) => new Date(b.task.effectiveDueDate) - new Date(a.task.effectiveDueDate))
+                .map(mapTaskDataForRender),
+        });
+        await fs.writeFile(`${outDir}/html/02_${agendas[i]}.html`, rendered);
+
+        if (GENERATE_PDF) {
+            await renderPDF(`${outDir}/html/02_${agendas[i]}.html`, `${outDir}/pdf/02_${agendas[i]}.pdf`);
         }
     }
 
@@ -131,6 +155,7 @@ async function run() {
     if (GENERATE_PDF) {
         await renderPDF(`${outDir}/html/${WAITING_FOR_FILE_NAME}.html`, `${outDir}/pdf/${WAITING_FOR_FILE_NAME}.pdf`);
     }
+
 
 
     /**
