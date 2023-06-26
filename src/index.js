@@ -41,6 +41,20 @@ function mapTaskDataForRender(item) {
     };
 }
 
+function mapProjectsForRender(data) {
+    return data
+        .map(folder => ({
+            sectionName: folder.sectionName,
+            sectionProjects: folder.sectionProjects
+                .map(project => ({
+                    ...project,
+                    dueDate: !!project.dueDate
+                        ? dayjs(project.dueDate).format('DD.MM.YYYY')
+                        : null,
+                })),
+        }))
+}
+
 const WAITING_FOR_TAG_NAME = 'Waiting For';
 
 async function run() {
@@ -64,11 +78,12 @@ async function run() {
     
     console.log('Generate HTML pages...');
     const fileContent = await fs.readFile(INPUT_FILE);
-    const {tasks, agendaItems} = JSON.parse(fileContent);
+    const {tasks, agendaItems, currentProjects} = JSON.parse(fileContent);
 
     const contexts = getTagNames(tasks)
         .filter(tagName => tagName !== WAITING_FOR_TAG_NAME);
-    const template = (await fs.readFile('./resources/context.html')).toString();
+    const contextTemplate = (await fs.readFile('./resources/context.html')).toString();
+    const projectsTemplate = (await fs.readFile('./resources/projects.html')).toString();
     const outDir = `/Users/roth/Desktop`;
 
     if (GENERATE_PDF) {
@@ -76,12 +91,63 @@ async function run() {
     }
     await fs.mkdir(outDir + `/html`, {recursive: true});
 
+
+    /**
+     * Generate Due Soon page
+     */
+    const renderedCurrentProjects = mustache.render(projectsTemplate, {
+        contextName: 'Current Projects',
+        folders: mapProjectsForRender(currentProjects),
+    });
+    const CURRENT_PROJECTS_FILE_NAME = '00_Projects';
+    await fs.writeFile(`${outDir}/html/${CURRENT_PROJECTS_FILE_NAME}.html`, renderedCurrentProjects);
+
+    if (GENERATE_PDF) {
+        await renderPDF(`${outDir}/html/${CURRENT_PROJECTS_FILE_NAME}.html`, `${outDir}/pdf/${CURRENT_PROJECTS_FILE_NAME}.pdf`);
+    }
+
+    /**
+     * Generate Due Soon page
+     */
+    const renderedDueSoon = mustache.render(contextTemplate, {
+        contextName: 'Due Soon',
+        tasks: tasks
+            .filter(task => !!task.task.effectiveDueDate)
+            .sort((a, b) => new Date(a.task.effectiveDueDate) - new Date(b.task.effectiveDueDate))
+            .map(mapTaskDataForRender),
+    });
+    const DUE_SOON_FILE_NAME = '01_due_soon';
+    await fs.writeFile(`${outDir}/html/${DUE_SOON_FILE_NAME}.html`, renderedDueSoon);
+
+    if (GENERATE_PDF) {
+        await renderPDF(`${outDir}/html/${DUE_SOON_FILE_NAME}.html`, `${outDir}/pdf/${DUE_SOON_FILE_NAME}.pdf`);
+    }
+
+
+   /**
+     * Generate Waiting For page
+     */
+    const renderedWaitingFor = mustache.render(contextTemplate, {
+        contextName: 'Waiting For',
+        tasks: tasks
+            .filter(task => task.tag.name === WAITING_FOR_TAG_NAME)
+            .sort(bySection)
+            .map(mapTaskDataForRender),
+    });
+    const WAITING_FOR_FILE_NAME = '02_waiting_for';
+    await fs.writeFile(`${outDir}/html/${WAITING_FOR_FILE_NAME}.html`, renderedWaitingFor);
+
+    if (GENERATE_PDF) {
+        await renderPDF(`${outDir}/html/${WAITING_FOR_FILE_NAME}.html`, `${outDir}/pdf/${WAITING_FOR_FILE_NAME}.pdf`);
+    }
+
+
     /**
      * Generate context pages
      */
     console.log('Generate Context pages...');
     for (let i=0; i < contexts.length; i++) {
-        const rendered = mustache.render(template, {
+        const rendered = mustache.render(contextTemplate, {
             contextName: contexts[i],
             tasks: tasks
                 .filter(item => item.tag.name === contexts[i])
@@ -91,14 +157,17 @@ async function run() {
                 .sort((a, b) => new Date(b.task.effectiveDueDate) - new Date(a.task.effectiveDueDate))
                 .map(mapTaskDataForRender),
         });
-        await fs.writeFile(`${outDir}/html/02_${contexts[i]}.html`, rendered);
+        await fs.writeFile(`${outDir}/html/10_${contexts[i]}.html`, rendered);
 
         if (GENERATE_PDF) {
-            await renderPDF(`${outDir}/html/02_${contexts[i]}.html`, `${outDir}/pdf/02_${contexts[i]}.pdf`);
+            await renderPDF(`${outDir}/html/10_${contexts[i]}.html`, `${outDir}/pdf/10_${contexts[i]}.pdf`);
         }
     }
 
     console.log('Done generating context pages.\n');
+
+
+    
     
     /**
      * Generate Agenda pages
@@ -107,7 +176,7 @@ async function run() {
 
     const agendas = getTagNames(agendaItems);
     for (let i=0; i < agendas.length; i++) {
-        const rendered = mustache.render(template, {
+        const rendered = mustache.render(contextTemplate, {
             contextName: `Agenda: ${agendas[i]}`,
             tasks: agendaItems
                 .filter(item => item.tag.name === agendas[i])
@@ -115,49 +184,15 @@ async function run() {
                 .sort((a, b) => new Date(b.task.effectiveDueDate) - new Date(a.task.effectiveDueDate))
                 .map(mapTaskDataForRender),
         });
-        await fs.writeFile(`${outDir}/html/03_${agendas[i]}.html`, rendered);
+        await fs.writeFile(`${outDir}/html/30_${agendas[i]}.html`, rendered);
 
         if (GENERATE_PDF) {
-            await renderPDF(`${outDir}/html/03_${agendas[i]}.html`, `${outDir}/pdf/03_${agendas[i]}.pdf`);
+            await renderPDF(`${outDir}/html/30_${agendas[i]}.html`, `${outDir}/pdf/30_${agendas[i]}.pdf`);
         }
     }
 
     console.log('Done generating agenda pages.\n');
 
-
-    /**
-     * Generate Due Soon page
-     */
-    const renderedDueSoon = mustache.render(template, {
-        contextName: 'Due Soon',
-        tasks: tasks
-            .filter(task => !!task.task.effectiveDueDate)
-            .sort((a, b) => new Date(a.task.effectiveDueDate) - new Date(b.task.effectiveDueDate))
-            .map(mapTaskDataForRender),
-    });
-    const DUE_SOON_FILE_NAME = '00_due_soon';
-    await fs.writeFile(`${outDir}/html/${DUE_SOON_FILE_NAME}.html`, renderedDueSoon);
-
-    if (GENERATE_PDF) {
-        await renderPDF(`${outDir}/html/${DUE_SOON_FILE_NAME}.html`, `${outDir}/pdf/${DUE_SOON_FILE_NAME}.pdf`);
-    }
-
-    /**
-     * Generate Waiting For page
-     */
-    const renderedWaitingFor = mustache.render(template, {
-        contextName: 'Waiting For',
-        tasks: tasks
-            .filter(task => task.tag.name === WAITING_FOR_TAG_NAME)
-            .sort(bySection)
-            .map(mapTaskDataForRender),
-    });
-    const WAITING_FOR_FILE_NAME = '01_waiting_for';
-    await fs.writeFile(`${outDir}/html/${WAITING_FOR_FILE_NAME}.html`, renderedWaitingFor);
-
-    if (GENERATE_PDF) {
-        await renderPDF(`${outDir}/html/${WAITING_FOR_FILE_NAME}.html`, `${outDir}/pdf/${WAITING_FOR_FILE_NAME}.pdf`);
-    }
 
 
 
