@@ -77,7 +77,7 @@ async function run() {
     /**
      * Generate context pages
      */
-    for (let i=0; i < contexts.length-1; i++) {
+    for (let i=0; i < contexts.length; i++) {
         const rendered = mustache.render(template, {
             contextName: contexts[i],
             tasks: tasks
