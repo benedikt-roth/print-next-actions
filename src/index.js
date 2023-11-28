@@ -46,6 +46,8 @@ function mapProjectsForRender(data) {
         .map(folder => ({
             sectionName: folder.sectionName,
             sectionProjects: folder.sectionProjects
+                // Exclude continuous projects
+                .filter(project => !project.name.includes('(c)'))
                 .map(project => ({
                     ...project,
                     dueDate: !!project.dueDate
@@ -53,6 +55,7 @@ function mapProjectsForRender(data) {
                         : null,
                 })),
         }))
+        .filter(section => section.sectionProjects.length > 0)
 }
 
 const WAITING_FOR_TAG_NAME = 'Waiting For';
