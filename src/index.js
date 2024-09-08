@@ -59,6 +59,7 @@ function mapProjectsForRender(data) {
 }
 
 const WAITING_FOR_TAG_NAME = 'Waiting For';
+const TODAY_TAG_NAME = 'Today';
 
 async function run() {
     /**
@@ -84,7 +85,7 @@ async function run() {
     const {tasks, agendaItems, currentProjects} = JSON.parse(fileContent);
 
     const contexts = getTagNames(tasks)
-        .filter(tagName => tagName !== WAITING_FOR_TAG_NAME);
+        .filter(tagName => tagName !== WAITING_FOR_TAG_NAME && tagName !== TODAY_TAG_NAME);
     const contextTemplate = (await fs.readFile('./resources/context.html')).toString();
     const projectsTemplate = (await fs.readFile('./resources/projects.html')).toString();
     const outDir = `/Users/roth/Desktop`;
