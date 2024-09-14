@@ -18,6 +18,11 @@ const AUTOMATION_SCRIPT = './resources/extract_next_actions.scpt';
 const GENERATE_PDF = !process.argv.includes('--no-pdf');
 const EXTRACT_ACTIONS = !process.argv.includes('--no-extract');
 
+const formatIdx = process.argv.indexOf('--format');
+const PAPER_FORMAT = formatIdx > -1
+    ? process.argv[formatIdx+1]
+    : 'FilofaxPersonal';
+
 function bySection( a, b ) {
     if ( a.metadata.section < b.metadata.section ){
       return 1;
@@ -107,7 +112,7 @@ async function run() {
     await fs.writeFile(`${outDir}/html/${CURRENT_PROJECTS_FILE_NAME}.html`, renderedCurrentProjects);
 
     if (GENERATE_PDF) {
-        await renderPDF(`${outDir}/html/${CURRENT_PROJECTS_FILE_NAME}.html`, `${outDir}/pdf/${CURRENT_PROJECTS_FILE_NAME}.pdf`);
+        await renderPDF(`${outDir}/html/${CURRENT_PROJECTS_FILE_NAME}.html`, `${outDir}/pdf/${CURRENT_PROJECTS_FILE_NAME}.pdf`, PAPER_FORMAT);
     }
 
     /**
@@ -124,7 +129,7 @@ async function run() {
     await fs.writeFile(`${outDir}/html/${DUE_SOON_FILE_NAME}.html`, renderedDueSoon);
 
     if (GENERATE_PDF) {
-        await renderPDF(`${outDir}/html/${DUE_SOON_FILE_NAME}.html`, `${outDir}/pdf/${DUE_SOON_FILE_NAME}.pdf`);
+        await renderPDF(`${outDir}/html/${DUE_SOON_FILE_NAME}.html`, `${outDir}/pdf/${DUE_SOON_FILE_NAME}.pdf`, PAPER_FORMAT);
     }
 
 
@@ -142,7 +147,7 @@ async function run() {
     await fs.writeFile(`${outDir}/html/${WAITING_FOR_FILE_NAME}.html`, renderedWaitingFor);
 
     if (GENERATE_PDF) {
-        await renderPDF(`${outDir}/html/${WAITING_FOR_FILE_NAME}.html`, `${outDir}/pdf/${WAITING_FOR_FILE_NAME}.pdf`);
+        await renderPDF(`${outDir}/html/${WAITING_FOR_FILE_NAME}.html`, `${outDir}/pdf/${WAITING_FOR_FILE_NAME}.pdf`, PAPER_FORMAT);
     }
 
 
@@ -164,7 +169,7 @@ async function run() {
         await fs.writeFile(`${outDir}/html/10_${contexts[i]}.html`, rendered);
 
         if (GENERATE_PDF) {
-            await renderPDF(`${outDir}/html/10_${contexts[i]}.html`, `${outDir}/pdf/10_${contexts[i]}.pdf`);
+            await renderPDF(`${outDir}/html/10_${contexts[i]}.html`, `${outDir}/pdf/10_${contexts[i]}.pdf`, PAPER_FORMAT);
         }
     }
 
@@ -191,7 +196,7 @@ async function run() {
         await fs.writeFile(`${outDir}/html/30_${agendas[i]}.html`, rendered);
 
         if (GENERATE_PDF) {
-            await renderPDF(`${outDir}/html/30_${agendas[i]}.html`, `${outDir}/pdf/30_${agendas[i]}.pdf`);
+            await renderPDF(`${outDir}/html/30_${agendas[i]}.html`, `${outDir}/pdf/30_${agendas[i]}.pdf`, PAPER_FORMAT);
         }
     }
 

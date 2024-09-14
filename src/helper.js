@@ -19,23 +19,37 @@ function getTagNames(tasks) {
     return flattenedList;
 }
 
-async function renderPDF(htmlFilePath, pdfFilePath) {
+async function renderPDF(htmlFilePath, pdfFilePath, format = 'A5') {
   if (!browser) {
     browser = await puppeteer.launch({headless: 'new'});
   }
 
   const page = await browser.newPage();
+  let sizeOptions;
+
+  switch (format) {
+    case 'A5':
+      sizeOptions = {format: 'A5'};
+      break;
+    case 'FilofaxPersonal':
+      sizeOptions = {
+        width: '95mm',
+        height: '171mm',
+      };
+      break;
+  }
+
   const options = {
     path: pdfFilePath,
-    format: 'A5',
     printBackground: true,
     scale: 1,
     margin: {
       bottom: 30,
       top: 30,
       right: 30,
-      left: 50,
+      left: 55,
     },
+    ...sizeOptions,
   };
 
   await page.goto(`file://${htmlFilePath}`, { waitUntil: 'networkidle0' });
