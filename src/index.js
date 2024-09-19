@@ -229,7 +229,8 @@ async function run() {
                 ...project, 
                 sectionName: section.sectionName
             }))
-        );
+        )
+        .sort((a, b) => a.sectionName - b.sectionName);
 
     for (let i=0; i < projectData.length; i++) {
         const rendered = mustache.render(projectViewTemplate, {
@@ -245,7 +246,7 @@ async function run() {
                 ]
                 .map(mapProjectTaskDataForRender),
         });
-        const fileNameSuffix = projectData[i].name
+        const fileNameSuffix = `${projectData[i].sectionName} ${projectData[i].name}`
             .toLowerCase()
             .replace(/[^a-z0-9\s]/g, '')
             .replace(/\s+/g, '_');
