@@ -234,6 +234,7 @@ async function run() {
     for (let i=0; i < projectData.length; i++) {
         const rendered = mustache.render(projectViewTemplate, {
             projectName: `${projectData[i].name}`,
+            sectionName: `${projectData[i].sectionName}`,
             tasks: [
                 ...projectData[i].tasks
                     .filter(task => task.effectiveDueDate)
