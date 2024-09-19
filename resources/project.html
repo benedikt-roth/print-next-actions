@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>{{title}}</title>
+  <meta charset="UTF-8">
+  <style type="text/css">
+  body {
+    font-family: sans-serif;
+    font-size: 10pt;
+    margin: 3em 2em 0 0;
+  }
+
+  h1 {
+    margin-top: 0;
+  }
+
+  dl dt {
+    margin-top: .8em;
+  }
+
+  dl dd {
+    margin: 0 0 5px;
+    font-size: 0.8em;
+  }
+
+  dl dd.note {
+    color: #AAA;
+    overflow: hidden;
+  }
+  dl dd.due {
+    color: red;
+  }
+
+  div.placeholder {
+    height: 30em;
+    border: 1pt solid #AAA;
+  }
+
+  span.secondary {
+    color: #CCC;
+    font-size: .8em;
+  }
+
+  div.folder,
+  div.folder> div.project {
+    page-break-inside: avoid;
+  }
+  </style>
+</head>
+<body>
+    <h1>{{projectName}}</h1>
+    <p class="notes">{{projectNotes}}</p>
+    <dl>
+      {{#tasks}}
+      <div class="task">
+          <dt>{{#flagged}}🖤 {{/flagged}}{{name}}</dt>
+          {{#effectiveDueDate}}<dd class="due">🎯 Due {{effectiveDueDate}}</dd>{{/effectiveDueDate}}
+          {{#note}}<dd class="note">{{note}}</dd>{{/note}}
+      </div>
+      {{/tasks}}
+    </dl>
+</body>
+</html>

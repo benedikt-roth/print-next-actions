@@ -12,8 +12,10 @@ const {
     destruct,
 } = require('./helper');
 
-const INPUT_FILE = '/Users/roth/Desktop/next_actions.json';
-const AUTOMATION_SCRIPT = './resources/extract_next_actions.scpt';
+const INPUT_NEXT_ACTION_FILE = '/Users/roth/Desktop/next_actions.json';
+const AUTOMATION_NEXT_ACTION_SCRIPT = './resources/extract_next_actions.scpt';
+const INPUT_PROJECTS_FILE = '/Users/roth/Desktop/projects.json';
+const AUTOMATION_PROJECTS_SCRIPT = './resources/projects.scpt';
 
 const GENERATE_PDF = !process.argv.includes('--no-pdf');
 const EXTRACT_ACTIONS = !process.argv.includes('--no-extract');
@@ -45,6 +47,15 @@ function mapTaskDataForRender(item) {
         },
     };
 }
+
+function mapProjectTaskDataForRender(task) {
+    return {
+        ...task,
+        effectiveDueDate: !!task.effectiveDueDate
+            ? dayjs(task.effectiveDueDate).format('DD. MM YYYY')
+            : null,
+    }
+};
 
 function mapProjectsForRender(data) {
     return data
@@ -78,7 +89,9 @@ async function run() {
 
     if (EXTRACT_ACTIONS) {
         console.log('Extract next actions from OmniFocus');
-        await exec(`osascript -l JavaScript ${AUTOMATION_SCRIPT}`);
+        await exec(`osascript -l JavaScript ${AUTOMATION_NEXT_ACTION_SCRIPT}`);
+        console.log('Extract projects from OmniFocus');
+        await exec(`osascript -l JavaScript ${AUTOMATION_PROJECTS_SCRIPT}`);
         console.log('Done extracting.');
     } else {
         console.log('Skipping extraction of next actions.\n');
@@ -86,13 +99,16 @@ async function run() {
     
     
     console.log('Generate HTML pages...');
-    const fileContent = await fs.readFile(INPUT_FILE);
-    const {tasks, agendaItems, currentProjects} = JSON.parse(fileContent);
+    const nextActionFileContent = await fs.readFile(INPUT_NEXT_ACTION_FILE);
+    const {tasks, agendaItems, currentProjects} = JSON.parse(nextActionFileContent);
+    const projectsFileContent = await fs.readFile(INPUT_PROJECTS_FILE);
+    const {currentProjects: activeProjects} = JSON.parse(projectsFileContent);
 
     const contexts = getTagNames(tasks)
         .filter(tagName => tagName !== WAITING_FOR_TAG_NAME && tagName !== TODAY_TAG_NAME);
     const contextTemplate = (await fs.readFile('./resources/context.html')).toString();
     const projectsTemplate = (await fs.readFile('./resources/projects.html')).toString();
+    const projectViewTemplate = (await fs.readFile('./resources/project.html')).toString();
     const outDir = `/Users/roth/Desktop`;
 
     if (GENERATE_PDF) {
@@ -203,6 +219,43 @@ async function run() {
     console.log('Done generating agenda pages.\n');
 
 
+    /**
+     * Generate active project detail pages
+    */
+    console.log('Generate project pages');
+
+    const projectData = activeProjects.flatMap(section => 
+            section.sectionProjects.map(project => ({
+                ...project, 
+                sectionName: section.sectionName
+            }))
+        );
+
+    for (let i=0; i < projectData.length; i++) {
+        const rendered = mustache.render(projectViewTemplate, {
+            projectName: `${projectData[i].name}`,
+            tasks: [
+                ...projectData[i].tasks
+                    .filter(task => task.effectiveDueDate)
+                    .sort((a, b) => new Date(a.effectiveDueDate) - new Date(b.effectiveDueDate)), // Sort by due date ascending
+                ...projectData[i].tasks
+                    .filter(task => !task.effectiveDueDate)
+                    .sort((a, b) => b.flagged - a.flagged)
+                ]
+                .map(mapProjectTaskDataForRender),
+        });
+        const fileNameSuffix = projectData[i].name
+            .toLowerCase()
+            .replace(/[^a-z0-9\s]/g, '')
+            .replace(/\s+/g, '_');
+        await fs.writeFile(`${outDir}/html/40_${i}_${fileNameSuffix}.html`, rendered);
+
+        if (GENERATE_PDF) {
+            await renderPDF(`${outDir}/html/40_${i}_${fileNameSuffix}.html`, `${outDir}/pdf/40_${i}_${fileNameSuffix}.pdf`, PAPER_FORMAT);
+        }
+    }
+
+    console.log('Done generating project pages.\n');
 
 
     /**
