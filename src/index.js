@@ -167,7 +167,6 @@ async function run() {
 
     console.log('Done generating context pages.\n');
 
-    process.exit();
     
     
     /**
@@ -175,24 +174,28 @@ async function run() {
     */
     console.log('Generate Agenda pages');
 
-    const agendas = getTagNames(agendaItems);
-    for (let i=0; i < agendas.length; i++) {
+    const agendaTags = contexts.filter(tag => tag.name.indexOf('Agenda:') === 0);
+    for (let i=0; i < agendaTags.length; i++) {
         const rendered = mustache.render(contextTemplate, {
-            contextName: `Agenda: ${agendas[i]}`,
-            tasks: agendaItems
-                .filter(item => item.tag.name === agendas[i])
-                .sort((a, b) => b.task.flagged - a.task.flagged)
-                .sort((a, b) => new Date(b.task.effectiveDueDate) - new Date(a.task.effectiveDueDate))
-                .map(mapTaskDataForRender),
+            contextName: agendaTags[i].name,
+            tasks: await getTasksByLabelName(agendaTags[i].name),
         });
-        await fs.writeFile(`${outDir}/html/30_${agendas[i]}.html`, rendered);
+
+        const fileName = agendaTags[i].name
+            .toLowerCase()
+            .replace(/[^a-z0-9\s]/g, '') // remove non-alphanumeric and non-space
+            .replace(/\s+/g, '_'); // replace spaces with underscores
+        await fs.writeFile(`${outDir}/html/30_${fileName}.html`, rendered);
 
         if (GENERATE_PDF) {
-            await renderPDF(`${outDir}/html/30_${agendas[i]}.html`, `${outDir}/pdf/30_${agendas[i]}.pdf`, PAPER_FORMAT);
+            await renderPDF(`${outDir}/html/30_${fileName}.html`, `${outDir}/pdf/30_${fileName}.pdf`, PAPER_FORMAT);
         }
     }
 
     console.log('Done generating agenda pages.\n');
+
+    
+    process.exit();
 
 
     /**
