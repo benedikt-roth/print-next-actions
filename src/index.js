@@ -1,3 +1,5 @@
+require('dotenv').config();
+
 const fs = require('fs').promises;
 const path = require('path');
 const mustache = require('mustache');
