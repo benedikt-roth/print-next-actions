@@ -75,7 +75,11 @@ async function run() {
     const currentProjectsFolder = allProjects.find(project => project.name === 'Current Projects');
     // Current projects sections Business, Personal, etc.
     const sections = allProjects.filter(section => section.parent_id === currentProjectsFolder.id);
-    const contexts = await getAllTags();
+    // Get tags and omit "Waiting" tag, which is processed separately
+    const contexts = (await getAllTags())
+        .filter(tag => tag.name !== WAITING_TAG_NAME)
+        .filter(tag => tag.name !== "5minutes")
+        .filter(tag => tag.name !== "15minutes");
 
     
     const contextTemplate = (await fs.readFile('./resources/context.html')).toString();
@@ -143,25 +147,16 @@ async function run() {
         await renderPDF(`${outDir}/html/${WAITING_FILE_NAME}.html`, `${outDir}/pdf/${WAITING_FILE_NAME}.pdf`, PAPER_FORMAT);
     }
 
-    process.exit();
-
-
     /**
      * Generate context pages
      */
     console.log('Generate Context pages...');
-    for (let i=0; i < contexts.length; i++) {
-        const tagName = contexts[i].name;
+    const tagsWithoutAgendas = contexts.filter(tag => tag.name.indexOf('Agenda:'));
+    for (let i=0; i < tagsWithoutAgendas.length; i++) {
+        const tagName = tagsWithoutAgendas[i].name;
         const rendered = mustache.render(contextTemplate, {
             contextName: tagName,
-            tasks: tasks
-                .filter(item => item.tag.name === tagName)
-                // Exclude Waiting For items, since they are no tasks
-                .filter(item => item.tag.name !== WAITING_TAG_NAME)
-                .sort((a, b) => a.metadata.section > b.metadata.section)
-                .sort((a, b) => b.task.flagged - a.task.flagged)
-                .sort((a, b) => new Date(b.task.effectiveDueDate) - new Date(a.task.effectiveDueDate))
-                .map(mapTaskDataForRender),
+            tasks: await getTasksByLabelName(tagName),
         });
         await fs.writeFile(`${outDir}/html/10_${tagName}.html`, rendered);
 
@@ -172,7 +167,7 @@ async function run() {
 
     console.log('Done generating context pages.\n');
 
-
+    process.exit();
     
     
     /**
