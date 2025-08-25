@@ -64,40 +64,6 @@ async function getAllProjects() {
 
 
 /**
- * Maps a v1 project ID to a v2 project ID using the Todoist API.
- * @param {string} projectIdV1 - The v1 project ID to map.
- * @returns {Promise<string>} The corresponding v2 project ID.
- */
-async function mapV1ProjectIdToV2(projectIdV1) {
-    const token = process.env.TODOIST_TOKEN;
-    if (!token) {
-        throw new Error('TODOIST_TOKEN is not set in environment variables.');
-    }
-    if (!projectIdV1) {
-        throw new Error('projectIdV1 is required.');
-    }
-
-    const url = `https://api.todoist.com/api/v1/id_mappings/projects/${encodeURIComponent(projectIdV1)}`;
-    const response = await fetch(url, {
-        headers: {
-            'Authorization': `Bearer ${token}`,
-        },
-    });
-
-    if (!response.ok) {
-        throw new Error(`Failed to map project ID: ${response.status} ${response.statusText}`);
-    }
-
-    const [mappingData] = await response.json();
-    if (!mappingData || !mappingData.new_id) {
-        throw new Error('Could not find v2 project ID for the given v1 project ID.');
-    }
-
-    return mappingData.new_id;
-}
-
-
-/**
  * Fetches all tasks from the Todoist REST API that are tagged with a specific label name,
  * handling pagination using next_cursor.
  * @param {string} labelName - The label (tag) name to filter tasks by.
@@ -212,6 +178,5 @@ module.exports = {
     getAllProjects,
     getTasksByLabelName,
     getTasksByProjectId,
-    mapV1ProjectIdToV2,
 };
 

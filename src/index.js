@@ -10,7 +10,7 @@ const {
     getAllTags,
     getAllProjects,
     getTasksByProjectId,
-    mapV1ProjectIdToV2
+    getTasksByLabelName,
 } = require('./todoist')
 
 const {
