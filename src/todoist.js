@@ -87,37 +87,53 @@ async function getAllProjectsByParentId(parentId) {
 }
 
 /**
- * Fetches all tasks from the Todoist REST API that are tagged with a specific label ID.
- * @param {string} labelId - The label (tag) ID to filter tasks by.
+ * Fetches all tasks from the Todoist REST API that are tagged with a specific label name,
+ * handling pagination using next_cursor.
+ * @param {string} labelName - The label (tag) name to filter tasks by.
  * @returns {Promise<Array<Object>>} Array of task objects
  */
-async function getTasksByLabelId(labelId) {
+async function getTasksByLabelName(labelName) {
     const token = process.env.TODOIST_TOKEN;
     if (!token) {
         throw new Error('TODOIST_TOKEN is not set in environment variables.');
     }
-    if (!labelId) {
-        throw new Error('labelId is required.');
+    if (!labelName) {
+        throw new Error('labelName is required.');
     }
 
-    const url = `https://api.todoist.com/rest/v2/tasks?label_id=${encodeURIComponent(labelId)}`;
-    const response = await fetch(url, {
-        headers: {
-            'Authorization': `Bearer ${token}`,
-        },
-    });
+    let allTasks = [];
+    let nextCursor = null;
+    const limit = 100; // Adjust as needed, API may have a max
 
-    if (!response.ok) {
-        throw new Error(`Failed to fetch tasks: ${response.status} ${response.statusText}`);
-    }
+    do {
+        const url = new URL('https://api.todoist.com/api/v1/tasks');
+        url.searchParams.append('label', labelName);
+        url.searchParams.append('limit', limit);
+        if (nextCursor) {
+            url.searchParams.append('cursor', nextCursor);
+        }
 
-    const tasks = await response.json();
-    return tasks;
+        const response = await fetch(url.toString(), {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch tasks: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        allTasks = allTasks.concat(data.results || []);
+        nextCursor = data.next_cursor;
+    } while (nextCursor);
+
+    return allTasks;
 }
 
 module.exports = {
     getAllTags,
     getAllProjects,
-    getTasksByLabelId,
+    getTasksByLabelName,
 };
 

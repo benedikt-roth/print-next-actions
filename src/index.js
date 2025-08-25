@@ -6,7 +6,7 @@ const mustache = require('mustache');
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const dayjs = require('dayjs');
-const {getAllTags, getAllProjects, getTasksByLabelId} = require('./todoist')
+const {getAllTags, getAllProjects, getTasksByLabelName} = require('./todoist')
 
 const {
     getTagNames,
@@ -54,24 +54,7 @@ function mapProjectTaskDataForRender(task) {
     }
 };
 
-function mapProjectsForRender(data) {
-    return data
-        .map(folder => ({
-            sectionName: folder.sectionName,
-            sectionProjects: folder.sectionProjects
-                // Exclude continuous projects
-                .filter(project => !project.name.includes('(c)'))
-                .map(project => ({
-                    ...project,
-                    dueDate: !!project.dueDate
-                        ? dayjs(project.dueDate).format('DD.MM.YYYY')
-                        : null,
-                })),
-        }))
-        .filter(section => section.sectionProjects.length > 0)
-}
-
-const WAITING_FOR_TAG_NAME = 'Waiting For';
+const WAITING_TAG_NAME = 'Waiting';
 const TODAY_TAG_NAME = 'Today';
 
 async function run() {
@@ -124,12 +107,12 @@ async function run() {
         await renderPDF(`${outDir}/html/${CURRENT_PROJECTS_FILE_NAME}.html`, `${outDir}/pdf/${CURRENT_PROJECTS_FILE_NAME}.pdf`, PAPER_FORMAT);
     }
     
-    process.exit();
-
-
     /**
      * Generate Due Soon page
      */
+    /**
+     * TODO: Implement due soon page
+     * 
     const renderedDueSoon = mustache.render(contextTemplate, {
         contextName: 'Due Soon',
         tasks: tasks
@@ -143,24 +126,24 @@ async function run() {
     if (GENERATE_PDF) {
         await renderPDF(`${outDir}/html/${DUE_SOON_FILE_NAME}.html`, `${outDir}/pdf/${DUE_SOON_FILE_NAME}.pdf`, PAPER_FORMAT);
     }
+    */
 
 
    /**
      * Generate Waiting For page
      */
     const renderedWaitingFor = mustache.render(contextTemplate, {
-        contextName: 'Waiting For',
-        tasks: tasks
-            .filter(task => task.tag.name === WAITING_FOR_TAG_NAME)
-            .sort(bySection)
-            .map(mapTaskDataForRender),
+        contextName: 'Waiting',
+        tasks: await getTasksByLabelName(WAITING_TAG_NAME),
     });
-    const WAITING_FOR_FILE_NAME = '02_waiting_for';
-    await fs.writeFile(`${outDir}/html/${WAITING_FOR_FILE_NAME}.html`, renderedWaitingFor);
+    const WAITING_FILE_NAME = '02_waiting';
+    await fs.writeFile(`${outDir}/html/${WAITING_FILE_NAME}.html`, renderedWaitingFor);
 
     if (GENERATE_PDF) {
-        await renderPDF(`${outDir}/html/${WAITING_FOR_FILE_NAME}.html`, `${outDir}/pdf/${WAITING_FOR_FILE_NAME}.pdf`, PAPER_FORMAT);
+        await renderPDF(`${outDir}/html/${WAITING_FILE_NAME}.html`, `${outDir}/pdf/${WAITING_FILE_NAME}.pdf`, PAPER_FORMAT);
     }
+
+    process.exit();
 
 
     /**
@@ -174,7 +157,7 @@ async function run() {
             tasks: tasks
                 .filter(item => item.tag.name === tagName)
                 // Exclude Waiting For items, since they are no tasks
-                .filter(item => item.tag.name !== WAITING_FOR_TAG_NAME)
+                .filter(item => item.tag.name !== WAITING_TAG_NAME)
                 .sort((a, b) => a.metadata.section > b.metadata.section)
                 .sort((a, b) => b.task.flagged - a.task.flagged)
                 .sort((a, b) => new Date(b.task.effectiveDueDate) - new Date(a.task.effectiveDueDate))
