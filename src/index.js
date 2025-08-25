@@ -6,6 +6,7 @@ const mustache = require('mustache');
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const dayjs = require('dayjs');
+const {getAllTags, getAllProjects, getTasksByLabelId} = require('./todoist')
 
 const {
     getTagNames,
@@ -14,13 +15,7 @@ const {
     destruct,
 } = require('./helper');
 
-const INPUT_NEXT_ACTION_FILE = '/Users/roth/Desktop/next_actions.json';
-const AUTOMATION_NEXT_ACTION_SCRIPT = './resources/extract_next_actions.scpt';
-const INPUT_PROJECTS_FILE = '/Users/roth/Desktop/projects.json';
-const AUTOMATION_PROJECTS_SCRIPT = './resources/projects.scpt';
-
 const GENERATE_PDF = !process.argv.includes('--no-pdf');
-const EXTRACT_ACTIONS = !process.argv.includes('--no-extract');
 
 const formatIdx = process.argv.indexOf('--format');
 const PAPER_FORMAT = formatIdx > -1
@@ -89,49 +84,48 @@ async function run() {
         // empty
     }
 
-    if (EXTRACT_ACTIONS) {
-        console.log('Extract next actions from OmniFocus');
-        await exec(`osascript -l JavaScript ${AUTOMATION_NEXT_ACTION_SCRIPT}`);
-        console.log('Extract projects from OmniFocus');
-        await exec(`osascript -l JavaScript ${AUTOMATION_PROJECTS_SCRIPT}`);
-        console.log('Done extracting.');
-    } else {
-        console.log('Skipping extraction of next actions.\n');
-    }
-    
-    
     console.log('Generate HTML pages...');
-    const nextActionFileContent = await fs.readFile(INPUT_NEXT_ACTION_FILE);
-    const {tasks, agendaItems, currentProjects} = JSON.parse(nextActionFileContent);
-    const projectsFileContent = await fs.readFile(INPUT_PROJECTS_FILE);
-    const {currentProjects: activeProjects} = JSON.parse(projectsFileContent);
+    // TODO: Extract data
+    const {tasks, agendaItems} = {tasks: [], agendaItems: []};
+    // TODO: Extract data
+    const allProjects = await getAllProjects();
+    const currentProjectsFolder = allProjects.find(project => project.name === 'Current Projects');
+    // Current projects sections Business, Personal, etc.
+    const sections = allProjects.filter(section => section.parent_id === currentProjectsFolder.id);
+    const contexts = await getAllTags();
 
-    const contexts = getTagNames(tasks)
-        .filter(tagName => tagName !== WAITING_FOR_TAG_NAME && tagName !== TODAY_TAG_NAME);
+    
     const contextTemplate = (await fs.readFile('./resources/context.html')).toString();
     const projectsTemplate = (await fs.readFile('./resources/projects.html')).toString();
     const projectViewTemplate = (await fs.readFile('./resources/project.html')).toString();
-    const outDir = `/Users/roth/Desktop`;
-
+    const outDir = 'C:/Users/ben/Desktop';
+    
     if (GENERATE_PDF) {
         await fs.mkdir(outDir + `/pdf`, {recursive: true});
     }
     await fs.mkdir(outDir + `/html`, {recursive: true});
-
-
+    
+    
     /**
-     * Generate Due Soon page
-     */
-    const renderedCurrentProjects = mustache.render(projectsTemplate, {
-        contextName: 'Current Projects',
-        folders: mapProjectsForRender(currentProjects),
+     * Generate Due Current Projects page
+    */
+   const renderedCurrentProjects = mustache.render(projectsTemplate, {
+       contextName: 'Current Projects',
+       folders: sections.map(section => ({
+           sectionName: section.name,
+           sectionProjects: allProjects.filter(project => project.parent_id === section.id),
+           // TODO: Add dues dates, comments etc.
+       })),
     });
     const CURRENT_PROJECTS_FILE_NAME = '00_Projects';
     await fs.writeFile(`${outDir}/html/${CURRENT_PROJECTS_FILE_NAME}.html`, renderedCurrentProjects);
-
+    
     if (GENERATE_PDF) {
         await renderPDF(`${outDir}/html/${CURRENT_PROJECTS_FILE_NAME}.html`, `${outDir}/pdf/${CURRENT_PROJECTS_FILE_NAME}.pdf`, PAPER_FORMAT);
     }
+    
+    process.exit();
+
 
     /**
      * Generate Due Soon page
@@ -174,20 +168,22 @@ async function run() {
      */
     console.log('Generate Context pages...');
     for (let i=0; i < contexts.length; i++) {
+        const tagName = contexts[i].name;
         const rendered = mustache.render(contextTemplate, {
-            contextName: contexts[i],
+            contextName: tagName,
             tasks: tasks
-                .filter(item => item.tag.name === contexts[i])
-                .filter(item => item.tag.name !== WAITING_FOR_TAG_NAME) // Exclude Waiting For items, since they are no tasks
+                .filter(item => item.tag.name === tagName)
+                // Exclude Waiting For items, since they are no tasks
+                .filter(item => item.tag.name !== WAITING_FOR_TAG_NAME)
                 .sort((a, b) => a.metadata.section > b.metadata.section)
                 .sort((a, b) => b.task.flagged - a.task.flagged)
                 .sort((a, b) => new Date(b.task.effectiveDueDate) - new Date(a.task.effectiveDueDate))
                 .map(mapTaskDataForRender),
         });
-        await fs.writeFile(`${outDir}/html/10_${contexts[i]}.html`, rendered);
+        await fs.writeFile(`${outDir}/html/10_${tagName}.html`, rendered);
 
         if (GENERATE_PDF) {
-            await renderPDF(`${outDir}/html/10_${contexts[i]}.html`, `${outDir}/pdf/10_${contexts[i]}.pdf`, PAPER_FORMAT);
+            await renderPDF(`${outDir}/html/10_${tagName}.html`, `${outDir}/pdf/10_${tagName}.pdf`, PAPER_FORMAT);
         }
     }
 
