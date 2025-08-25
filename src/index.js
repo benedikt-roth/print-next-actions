@@ -6,7 +6,12 @@ const mustache = require('mustache');
 const util = require('util');
 const exec = util.promisify(require('child_process').exec);
 const dayjs = require('dayjs');
-const {getAllTags, getAllProjects, getTasksByLabelName} = require('./todoist')
+const {
+    getAllTags,
+    getAllProjects,
+    getTasksByProjectId,
+    mapV1ProjectIdToV2
+} = require('./todoist')
 
 const {
     getTagNames,
@@ -22,40 +27,7 @@ const PAPER_FORMAT = formatIdx > -1
     ? process.argv[formatIdx+1]
     : 'FilofaxPersonal';
 
-function bySection( a, b ) {
-    if ( a.metadata.section < b.metadata.section ){
-      return 1;
-    }
-    if ( a.metadata.section > b.metadata.section ){
-      return -1;
-    }
-    return 0;
-  }
-  
-
-function mapTaskDataForRender(item) {
-    return {
-        ...item,
-        task: {
-            ...item.task,
-            effectiveDueDate: !!item.task.effectiveDueDate
-                ? dayjs(item.task.effectiveDueDate).format('DD. MM YYYY')
-                : null,
-        },
-    };
-}
-
-function mapProjectTaskDataForRender(task) {
-    return {
-        ...task,
-        effectiveDueDate: !!task.effectiveDueDate
-            ? dayjs(task.effectiveDueDate).format('DD. MM YYYY')
-            : null,
-    }
-};
-
 const WAITING_TAG_NAME = 'Waiting';
-const TODAY_TAG_NAME = 'Today';
 
 async function run() {
     /**
@@ -68,8 +40,6 @@ async function run() {
     }
 
     console.log('Generate HTML pages...');
-    // TODO: Extract data
-    const {tasks, agendaItems} = {tasks: [], agendaItems: []};
     // TODO: Extract data
     const allProjects = await getAllProjects();
     const currentProjectsFolder = allProjects.find(project => project.name === 'Current Projects');
@@ -116,7 +86,7 @@ async function run() {
      */
     /**
      * TODO: Implement due soon page
-     * 
+     *
     const renderedDueSoon = mustache.render(contextTemplate, {
         contextName: 'Due Soon',
         tasks: tasks
@@ -171,7 +141,7 @@ async function run() {
     
     /**
      * Generate Agenda pages
-    */
+     */
     console.log('Generate Agenda pages');
 
     const agendaTags = contexts.filter(tag => tag.name.indexOf('Agenda:') === 0);
@@ -194,45 +164,32 @@ async function run() {
 
     console.log('Done generating agenda pages.\n');
 
-    
-    process.exit();
 
 
     /**
      * Generate active project detail pages
-    */
+     */
     console.log('Generate project pages');
 
-    const projectData = activeProjects.flatMap(section => 
-            section.sectionProjects.map(project => ({
-                ...project, 
-                sectionName: section.sectionName
-            }))
-        )
-        .sort((a, b) => a.sectionName - b.sectionName);
+    // TODO: Add priorities and due dates to tasks
+    for (const section of sections) {
+       const projects = allProjects.filter(project => project.parent_id === section.id);
 
-    for (let i=0; i < projectData.length; i++) {
-        const rendered = mustache.render(projectViewTemplate, {
-            projectName: `${projectData[i].name}`,
-            sectionName: `${projectData[i].sectionName}`,
-            tasks: [
-                ...projectData[i].tasks
-                    .filter(task => task.effectiveDueDate)
-                    .sort((a, b) => new Date(a.effectiveDueDate) - new Date(b.effectiveDueDate)), // Sort by due date ascending
-                ...projectData[i].tasks
-                    .filter(task => !task.effectiveDueDate)
-                    .sort((a, b) => b.flagged - a.flagged)
-                ]
-                .map(mapProjectTaskDataForRender),
-        });
-        const fileNameSuffix = `${projectData[i].sectionName} ${projectData[i].name}`
-            .toLowerCase()
-            .replace(/[^a-z0-9\s]/g, '')
-            .replace(/\s+/g, '_');
-        await fs.writeFile(`${outDir}/html/40_${i}_${fileNameSuffix}.html`, rendered);
+       for (const project of projects) {
+            const rendered = mustache.render(projectViewTemplate, {
+                projectName: `${project.name}`,
+                sectionName: `${section.name}`,
+                tasks: await getTasksByProjectId(project.id),
+            });
+            const fileName = `${section.name} ${project.name}`
+                .toLowerCase()
+                .replace(/[^a-z0-9\s]/g, '')
+                .replace(/\s+/g, '_');
+            await fs.writeFile(`${outDir}/html/40_${fileName}_${project.order}.html`, rendered);
 
-        if (GENERATE_PDF) {
-            await renderPDF(`${outDir}/html/40_${i}_${fileNameSuffix}.html`, `${outDir}/pdf/40_${i}_${fileNameSuffix}.pdf`, PAPER_FORMAT);
+            if (GENERATE_PDF) {
+                await renderPDF(`${outDir}/html/40_${i}_${fileName}.html`, `${outDir}/pdf/40_${i}_${fileName}.pdf`, PAPER_FORMAT);
+            }
         }
     }
 

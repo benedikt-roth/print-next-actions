@@ -63,9 +63,9 @@
     <dl>
       {{#tasks}}
       <div class="task">
-          <dt>{{#flagged}}🖤 {{/flagged}}{{name}}</dt>
-          {{#effectiveDueDate}}<dd class="due">🎯 Due {{effectiveDueDate}}</dd>{{/effectiveDueDate}}
-          {{#note}}<dd class="note">{{note}}</dd>{{/note}}
+          <dt>{{content}}</dt>
+          {{#deadline}}<dd class="due">🎯 Due {{deadline}}</dd>{{/deadline}}
+          {{#description}}<dd class="note">{{description}}</dd>{{/description}}
       </div>
       {{/tasks}}
     </dl>

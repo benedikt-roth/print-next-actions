@@ -62,29 +62,40 @@ async function getAllProjects() {
     return allProjects;
 }
 
+
 /**
- * Fetches all projects from the Todoist REST API.
- * @returns {Promise<Array<Object>>} Array of project objects
+ * Maps a v1 project ID to a v2 project ID using the Todoist API.
+ * @param {string} projectIdV1 - The v1 project ID to map.
+ * @returns {Promise<string>} The corresponding v2 project ID.
  */
-async function getAllProjectsByParentId(parentId) {
+async function mapV1ProjectIdToV2(projectIdV1) {
     const token = process.env.TODOIST_TOKEN;
     if (!token) {
         throw new Error('TODOIST_TOKEN is not set in environment variables.');
     }
+    if (!projectIdV1) {
+        throw new Error('projectIdV1 is required.');
+    }
 
-    const response = await fetch(`https://api.todoist.com/rest/v2/projects?parent_id=${encodeURIComponent(parentId)}`, {
+    const url = `https://api.todoist.com/api/v1/id_mappings/projects/${encodeURIComponent(projectIdV1)}`;
+    const response = await fetch(url, {
         headers: {
             'Authorization': `Bearer ${token}`,
         },
     });
 
     if (!response.ok) {
-        throw new Error(`Failed to fetch projects: ${response.status} ${response.statusText}`);
+        throw new Error(`Failed to map project ID: ${response.status} ${response.statusText}`);
     }
 
-    const projects = await response.json();
-    return projects;
+    const [mappingData] = await response.json();
+    if (!mappingData || !mappingData.new_id) {
+        throw new Error('Could not find v2 project ID for the given v1 project ID.');
+    }
+
+    return mappingData.new_id;
 }
+
 
 /**
  * Fetches all tasks from the Todoist REST API that are tagged with a specific label name,
@@ -131,9 +142,76 @@ async function getTasksByLabelName(labelName) {
     return allTasks;
 }
 
+/**
+ * Fetches all tasks from the Todoist REST API that are related to a specific project ID (v1),
+ * first mapping the v1 project ID to the v2 project ID, then fetching tasks using the v2 ID,
+ * handling pagination using next_cursor.
+ * @param {string} projectIdV1 - The v1 project ID to filter tasks by.
+ * @returns {Promise<Array<Object>>} Array of task objects
+ */
+async function getTasksByProjectId(projectIdV1) {
+    const token = process.env.TODOIST_TOKEN;
+    if (!token) {
+        throw new Error('TODOIST_TOKEN is not set in environment variables.');
+    }
+    if (!projectIdV1) {
+        throw new Error('projectIdV1 is required.');
+    }
+
+    // Step 1: Map v1 project ID to v2 project ID
+    const mappingUrl = `https://api.todoist.com/api/v1/id_mappings/projects/${encodeURIComponent(projectIdV1)}`;
+    const mappingResponse = await fetch(mappingUrl, {
+        headers: {
+            'Authorization': `Bearer ${token}`,
+        },
+    });
+
+    if (!mappingResponse.ok) {
+        throw new Error(`Failed to map project ID: ${mappingResponse.status} ${mappingResponse.statusText}`);
+    }
+
+    const [mappingData] = await mappingResponse.json();
+    const projectIdV2 = mappingData.new_id;
+    if (!projectIdV2) {
+        throw new Error('Could not find v2 project ID for the given v1 project ID.');
+    }
+
+    // Step 2: Fetch tasks using v2 project ID, handle pagination
+    let allTasks = [];
+    let nextCursor = null;
+    const limit = 100;
+
+    do {
+        const url = new URL('https://api.todoist.com/api/v1/tasks');
+        url.searchParams.append('project_id', projectIdV2);
+        url.searchParams.append('limit', limit);
+        if (nextCursor) {
+            url.searchParams.append('cursor', nextCursor);
+        }
+
+        const response = await fetch(url.toString(), {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch tasks: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        allTasks = allTasks.concat(data.results || []);
+        nextCursor = data.next_cursor;
+    } while (nextCursor);
+
+    return allTasks;
+}
+
 module.exports = {
     getAllTags,
     getAllProjects,
     getTasksByLabelName,
+    getTasksByProjectId,
+    mapV1ProjectIdToV2,
 };
 
