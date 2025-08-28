@@ -94,7 +94,7 @@ async function run() {
                 const dateB = b.due?.date ? b.due.date : '9999-12-31';
                 return dateA.localeCompare(dateB);
             })  
-            .sort((a, b) => a.priority - b.priority)
+            .sort((a, b) => b.priority - a.priority)
             .sort((a, b) => {
                 const dateA = a.deadline?.date ? a.deadline.date : '9999-12-31';
                 const dateB = b.deadline?.date ? b.deadline.date : '9999-12-31';

@@ -50,17 +50,26 @@
     page-break-inside: avoid;
   }
 
-  div.task.priority-1 {
-    .content {
-      color: red;
-      position: relative;
-    }
-    .content::before {
-      content: "🚩 ";
-      color: red;
-      position: relative;
-      left: 0;
-    }
+  div.task.priority-4 .content {
+    color: red;
+    position: relative;
+  }
+  div.task.priority-4 .content::before {
+    content: "🚩 ";
+    color: red;
+    position: relative;
+    left: 0;
+  }
+
+  div.task.priority-3 .content {
+    color: orange;
+    position: relative;
+  }
+  div.task.priority-3 .content::before {
+    content: "🔶 ";
+    color: orange;
+    position: relative;
+    left: 0;
   }
 
   </style>
