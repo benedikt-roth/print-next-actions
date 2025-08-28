@@ -62,6 +62,47 @@ async function getAllProjects() {
     return allProjects;
 }
 
+/**
+ * Fetches all tasks from the Todoist REST API that have a due date,
+ * handling pagination using next_cursor.
+ * @returns {Promise<Array<Object>>} Array of task objects with due dates
+ */
+async function getTasksWithDueDate() {
+    const token = process.env.TODOIST_TOKEN;
+    if (!token) {
+        throw new Error('TODOIST_TOKEN is not set in environment variables.');
+    }
+
+    let allTasks = [];
+    let nextCursor = null;
+    const limit = 100;
+
+    do {
+        const url = new URL('https://api.todoist.com/api/v1/tasks/filter');
+        url.searchParams.append('query', '!no deadline | due before: +2 weeks | p1');
+
+        if (nextCursor) {
+            url.searchParams.append('cursor', nextCursor);
+        }
+
+        const response = await fetch(url.toString(), {
+            headers: {
+                'Authorization': `Bearer ${token}`,
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch tasks with due date: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        allTasks = allTasks.concat(data.results || []);
+        nextCursor = data.next_cursor;
+    } while (nextCursor);
+
+    return allTasks;
+}
+
 
 /**
  * Fetches all tasks from the Todoist REST API that are tagged with a specific label name,
@@ -178,5 +219,6 @@ module.exports = {
     getAllProjects,
     getTasksByLabelName,
     getTasksByProjectId,
+    getTasksWithDueDate,
 };
 

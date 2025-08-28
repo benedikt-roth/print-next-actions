@@ -11,10 +11,10 @@ const {
     getAllProjects,
     getTasksByProjectId,
     getTasksByLabelName,
+    getTasksWithDueDate,
 } = require('./todoist')
 
 const {
-    getTagNames,
     renderPDF,
     mergePDFs,
     destruct,
@@ -55,7 +55,7 @@ async function run() {
     const contextTemplate = (await fs.readFile('./resources/context.html')).toString();
     const projectsTemplate = (await fs.readFile('./resources/projects.html')).toString();
     const projectViewTemplate = (await fs.readFile('./resources/project.html')).toString();
-    const outDir = 'C:/Users/ben/Desktop';
+    const outDir = './dist';
     
     if (GENERATE_PDF) {
         await fs.mkdir(outDir + `/pdf`, {recursive: true});
@@ -84,15 +84,9 @@ async function run() {
     /**
      * Generate Due Soon page
      */
-    /**
-     * TODO: Implement due soon page
-     *
     const renderedDueSoon = mustache.render(contextTemplate, {
-        contextName: 'Due Soon',
-        tasks: tasks
-            .filter(task => !!task.task.effectiveDueDate)
-            .sort((a, b) => new Date(a.task.effectiveDueDate) - new Date(b.task.effectiveDueDate))
-            .map(mapTaskDataForRender),
+        contextName: 'Due Soon and priority',
+        tasks: await getTasksWithDueDate(),
     });
     const DUE_SOON_FILE_NAME = '01_due_soon';
     await fs.writeFile(`${outDir}/html/${DUE_SOON_FILE_NAME}.html`, renderedDueSoon);
@@ -100,7 +94,6 @@ async function run() {
     if (GENERATE_PDF) {
         await renderPDF(`${outDir}/html/${DUE_SOON_FILE_NAME}.html`, `${outDir}/pdf/${DUE_SOON_FILE_NAME}.pdf`, PAPER_FORMAT);
     }
-    */
 
 
    /**
@@ -210,6 +203,8 @@ async function run() {
 
         await destruct();
     }
+
+    console.log("✅ All pages have been generated!")
 }
 
 run();
