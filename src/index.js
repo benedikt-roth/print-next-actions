@@ -86,7 +86,24 @@ async function run() {
      */
     const renderedDueSoon = mustache.render(contextTemplate, {
         contextName: 'Due Soon and priority',
-        tasks: await getTasksWithDueDate(),
+        tasks: (await getTasksWithDueDate())
+            .sort((a, b) => {
+                const dateA = a.due?.date ? a.due.date : '9999-12-31';
+                const dateB = b.due?.date ? b.due.date : '9999-12-31';
+                return dateA.localeCompare(dateB);
+            })  
+            .sort((a, b) => a.priority - b.priority)
+            .sort((a, b) => {
+                const dateA = a.deadline?.date ? a.deadline.date : '9999-12-31';
+                const dateB = b.deadline?.date ? b.deadline.date : '9999-12-31';
+                return dateA.localeCompare(dateB);
+            })
+            .map(task => ({
+                ...task,
+                due: task.due
+                    ? { ...task.due, date: dayjs(task.due.date).format('YYYY-MM-DD') }
+                    : task.due,
+            })),
     });
     const DUE_SOON_FILE_NAME = '01_due_soon';
     await fs.writeFile(`${outDir}/html/${DUE_SOON_FILE_NAME}.html`, renderedDueSoon);
@@ -94,6 +111,8 @@ async function run() {
     if (GENERATE_PDF) {
         await renderPDF(`${outDir}/html/${DUE_SOON_FILE_NAME}.html`, `${outDir}/pdf/${DUE_SOON_FILE_NAME}.pdf`, PAPER_FORMAT);
     }
+
+    process.exit();
 
 
    /**

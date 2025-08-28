@@ -28,7 +28,12 @@
     overflow: hidden;
   }
   dl dd.due {
+    margin-bottom: 0;
     color: red;
+  }
+
+  dl dd.planned {
+    color: blue;
   }
 
   div.placeholder {
@@ -44,6 +49,20 @@
   div.task {
     page-break-inside: avoid;
   }
+
+  div.task.priority-1 {
+    .content {
+      color: red;
+      position: relative;
+    }
+    .content::before {
+      content: "🚩 ";
+      color: red;
+      position: relative;
+      left: 0;
+    }
+  }
+
   </style>
 </head>
 <body>
@@ -53,9 +72,10 @@
   </div>
   <dl>
     {{#tasks}}
-      <div class="task">
-        <dt>{{content}}</dt>
-        {{#deadline}}<dd class="due">🎯 Due {{deadline}}</dd>{{/deadline}}
+      <div class="task priority-{{priority}}">
+        <dt class="content">{{content}}</dt>
+        {{#deadline}}<dd class="due">🎯 Deadline {{date}}</dd>{{/deadline}}
+        {{#due}}<dd class="planned">🗓️ Planned for {{date}}</dd>{{/due}}
         {{#description}}<dd class="note">{{description}}</dd>{{/description}}
       </div>
     {{/tasks}}
