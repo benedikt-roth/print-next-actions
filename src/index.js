@@ -1,5 +1,5 @@
 require('dotenv').config();
-
+const open = require('open');
 const fs = require('fs').promises;
 const path = require('path');
 const mustache = require('mustache');
@@ -34,7 +34,7 @@ async function run() {
      * Cleanup existing files
      */
     try {
-        await fs.rm(`${outDir}/pdf/_combined.pdf`);
+        await fs.rm(`${outDir}`);
     } catch (err) {
         // empty
     }
@@ -217,8 +217,6 @@ async function run() {
 
         console.log('Merging PDFs...');
         await mergePDFs(pdfs, completeOutDir + `/_combined.pdf`)
-        exec(`open ${completeOutDir}/_combined.pdf`);
-
         await destruct();
     }
 
