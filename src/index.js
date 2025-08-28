@@ -55,7 +55,9 @@ async function run() {
     const contextTemplate = (await fs.readFile('./resources/context.html')).toString();
     const projectsTemplate = (await fs.readFile('./resources/projects.html')).toString();
     const projectViewTemplate = (await fs.readFile('./resources/project.html')).toString();
-    const outDir = './dist';
+    const outDir = 'dist';
+    const completeOutDir = path.join(process.cwd(), outDir);
+
     
     if (GENERATE_PDF) {
         await fs.mkdir(outDir + `/pdf`, {recursive: true});
@@ -78,7 +80,7 @@ async function run() {
     await fs.writeFile(`${outDir}/html/${CURRENT_PROJECTS_FILE_NAME}.html`, renderedCurrentProjects);
     
     if (GENERATE_PDF) {
-        await renderPDF(`${outDir}/html/${CURRENT_PROJECTS_FILE_NAME}.html`, `${outDir}/pdf/${CURRENT_PROJECTS_FILE_NAME}.pdf`, PAPER_FORMAT);
+        await renderPDF(`${completeOutDir}/html/${CURRENT_PROJECTS_FILE_NAME}.html`, `${completeOutDir}/pdf/${CURRENT_PROJECTS_FILE_NAME}.pdf`, PAPER_FORMAT);
     }
     
     /**
@@ -109,11 +111,8 @@ async function run() {
     await fs.writeFile(`${outDir}/html/${DUE_SOON_FILE_NAME}.html`, renderedDueSoon);
 
     if (GENERATE_PDF) {
-        await renderPDF(`${outDir}/html/${DUE_SOON_FILE_NAME}.html`, `${outDir}/pdf/${DUE_SOON_FILE_NAME}.pdf`, PAPER_FORMAT);
+        await renderPDF(`${completeOutDir}/html/${DUE_SOON_FILE_NAME}.html`, `${completeOutDir}/pdf/${DUE_SOON_FILE_NAME}.pdf`, PAPER_FORMAT);
     }
-
-    process.exit();
-
 
    /**
      * Generate Waiting For page
@@ -126,7 +125,7 @@ async function run() {
     await fs.writeFile(`${outDir}/html/${WAITING_FILE_NAME}.html`, renderedWaitingFor);
 
     if (GENERATE_PDF) {
-        await renderPDF(`${outDir}/html/${WAITING_FILE_NAME}.html`, `${outDir}/pdf/${WAITING_FILE_NAME}.pdf`, PAPER_FORMAT);
+        await renderPDF(`${completeOutDir}/html/${WAITING_FILE_NAME}.html`, `${completeOutDir}/pdf/${WAITING_FILE_NAME}.pdf`, PAPER_FORMAT);
     }
 
     /**
@@ -143,7 +142,7 @@ async function run() {
         await fs.writeFile(`${outDir}/html/10_${tagName}.html`, rendered);
 
         if (GENERATE_PDF) {
-            await renderPDF(`${outDir}/html/10_${tagName}.html`, `${outDir}/pdf/10_${tagName}.pdf`, PAPER_FORMAT);
+            await renderPDF(`${completeOutDir}/html/10_${tagName}.html`, `${completeOutDir}/pdf/10_${tagName}.pdf`, PAPER_FORMAT);
         }
     }
 
@@ -170,7 +169,7 @@ async function run() {
         await fs.writeFile(`${outDir}/html/30_${fileName}.html`, rendered);
 
         if (GENERATE_PDF) {
-            await renderPDF(`${outDir}/html/30_${fileName}.html`, `${outDir}/pdf/30_${fileName}.pdf`, PAPER_FORMAT);
+            await renderPDF(`${completeOutDir}/html/30_${fileName}.html`, `${completeOutDir}/pdf/30_${fileName}.pdf`, PAPER_FORMAT);
         }
     }
 
@@ -197,10 +196,10 @@ async function run() {
                 .toLowerCase()
                 .replace(/[^a-z0-9\s]/g, '')
                 .replace(/\s+/g, '_');
-            await fs.writeFile(`${outDir}/html/40_${fileName}_${project.order}.html`, rendered);
+            await fs.writeFile(`${outDir}/html/40_${fileName}.html`, rendered);
 
             if (GENERATE_PDF) {
-                await renderPDF(`${outDir}/html/40_${i}_${fileName}.html`, `${outDir}/pdf/40_${i}_${fileName}.pdf`, PAPER_FORMAT);
+                await renderPDF(`${completeOutDir}/html/40_${fileName}.html`, `${completeOutDir}/pdf/40_${fileName}.pdf`, PAPER_FORMAT);
             }
         }
     }
@@ -212,13 +211,13 @@ async function run() {
      * Combine PDFs into one file named '_combined.pdf'
      */
     if (GENERATE_PDF) {
-        const pdfs = (await fs.readdir(outDir + '/pdf'))
+        const pdfs = (await fs.readdir(completeOutDir + '/pdf'))
             .filter(file => path.extname(file) === '.pdf')
             .map(file => `${outDir}/pdf/${file}`);
 
         console.log('Merging PDFs...');
-        await mergePDFs(pdfs, outDir + `/_combined.pdf`)
-        exec(`open ${outDir}/_combined.pdf`);
+        await mergePDFs(pdfs, completeOutDir + `/_combined.pdf`)
+        exec(`open ${completeOutDir}/_combined.pdf`);
 
         await destruct();
     }
